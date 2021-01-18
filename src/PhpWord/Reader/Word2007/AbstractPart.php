@@ -23,6 +23,7 @@ use PhpOffice\PhpWord\Element\TextRun;
 use PhpOffice\PhpWord\Element\TrackChange;
 use PhpOffice\PhpWord\PhpWord;
 use PhpOffice\PhpWord\Shared\XMLReader;
+use PhpOffice\PhpWord\Settings;
 
 /**
  * Abstract part reader
@@ -136,7 +137,7 @@ abstract class AbstractPart
                     }
                 }
             }
-            $parent->addPreserveText(htmlspecialchars($textContent, ENT_QUOTES, 'UTF-8'), $fontStyle, $paragraphStyle);
+            $parent->addPreserveText($this->escapeInput($textContent), $fontStyle, $paragraphStyle);
         } elseif ($xmlReader->elementExists('w:pPr/w:numPr', $domNode)) {
             // List item
             $numId = $xmlReader->getAttribute('w:val', $domNode, 'w:pPr/w:numPr/w:numId');
@@ -153,7 +154,7 @@ abstract class AbstractPart
             $textContent = null;
             $nodes = $xmlReader->getElements('w:r', $domNode);
             if ($nodes->length === 1) {
-                $textContent = htmlspecialchars($xmlReader->getValue('w:t', $nodes->item(0)), ENT_QUOTES, 'UTF-8');
+                $textContent = $this->escapeInput($xmlReader->getValue('w:t', $nodes->item(0)));
             } else {
                 $textContent = new TextRun($paragraphStyle);
                 foreach ($nodes as $node) {
@@ -307,7 +308,7 @@ abstract class AbstractPart
             }
         } elseif ($node->nodeName == 'w:t' || $node->nodeName == 'w:delText') {
             // TextRun
-            $textContent = htmlspecialchars($xmlReader->getValue('.', $node), ENT_QUOTES, 'UTF-8');
+            $textContent = $this->escapeInput($xmlReader->getValue('.', $node));
 
             if ($runParent->nodeName == 'w:hyperlink') {
                 $rId = $xmlReader->getAttribute('r:id', $runParent);
@@ -743,4 +744,13 @@ abstract class AbstractPart
 
         return $mode;
     }
+
+    private function escapeInput($value)
+	{
+		if (Settings::isOutputEscapingEnabled()) {
+			return $value;
+		} else {
+			return htmlspecialchars($value, ENT_QUOTES, 'UTF-8');
+		}
+	}
 }
